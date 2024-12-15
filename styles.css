@@ -1,0 +1,150 @@
+/* 基础样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  min-height: 200px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f5f6fa;
+  color: #2f3640;
+}
+
+/* 容器样式 */
+.container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* 计时器显示 */
+.timer {
+  font-size: 48px;
+  font-weight: bold;
+  font-family: monospace;
+  color: #2f3640;
+  text-align: center;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+/* 控制按钮区域 */
+.controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* 按钮样式 */
+.button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #4834d4;
+  color: white;
+}
+
+/* 开始按钮 */
+#startBtn {
+  background-color: #6c5ce7;
+}
+
+#startBtn:hover {
+  background-color: #5f4dd1;
+}
+
+/* 停止按钮 */
+#stopBtn {
+  background-color: #e84118;
+}
+
+#stopBtn:hover {
+  background-color: #d63110;
+}
+
+/* 模式切换按钮 */
+#modeToggle {
+  background-color: #00a8ff;
+}
+
+#modeToggle:hover {
+  background-color: #0097e6;
+}
+
+/* 禁用状态 */
+.button:disabled {
+  background-color: #b2bec3;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 当计时器运行时添加动画 */
+.timer.running {
+  animation: pulse 2s infinite;
+}
+
+/* 响应式调整 */
+@media (max-width: 320px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .timer {
+    font-size: 40px;
+    padding: 15px;
+  }
+  
+  .button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+} 
+
+/* 调试面板 */
+.debug-panel {
+  margin-top: 20px;
+  padding: 10px;
+  background: #f1f2f6;
+  border-radius: 6px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.debug-button {
+  background-color: #2d3436 !important;
+}
+
+.debug-input {
+  width: 60px;
+  padding: 5px;
+  border: 1px solid #b2bec3;
+  border-radius: 4px;
+  text-align: center;
+} 
