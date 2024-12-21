@@ -7,6 +7,25 @@
 </head>
 <body>
   <div class="container">
+    <div class="background-selector">
+      <div class="image-selector">
+        <label for="bgImage">背景图片:</label>
+        <select id="bgImage">
+          <option value="">无背景图片</option>
+          <option value="bg1.jpg">图片1</option>
+          <option value="bg2.jpg">图片2</option>
+          <option value="bg3.jpg">图片3</option>
+        </select>
+      </div>
+      <label for="bgColor">背景颜色:</label>
+      <input type="color" id="bgColor" value="#f5f6fa">
+      <label for="bgColor2">渐变颜色:</label>
+      <input type="color" id="bgColor2" value="#ffffff">
+      <select id="gradientType">
+        <option value="linear">线性渐变</option>
+        <option value="radial">径向渐变</option>
+      </select>
+    </div>
     <div id="timer" class="timer">25:00</div>
     
     <div class="controls">
