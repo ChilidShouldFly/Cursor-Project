@@ -24,7 +24,7 @@ function showNotification(timerType) {
   const options = {
     type: 'basic',
     iconUrl: 'icon.png',
-    title: '番茄钟提醒',
+    title: '好番茄钟喊你别干活了',
     message: timerType === 'work' ? '专注时间结束啦！该休息一下了' : '休息结束啦！继续开始新的专注吧'
   };
 
@@ -41,7 +41,7 @@ function showNotification(timerType) {
   }
 }
 
-// 初始化设置
+// 初始��设置
 chrome.runtime.onInstalled.addListener(() => {
   console.log('扩展已安装');
   

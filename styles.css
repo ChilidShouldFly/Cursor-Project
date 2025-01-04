@@ -6,13 +6,11 @@
 }
 
 body {
-  width: 300px;
-  min-height: 200px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f5f6fa;
+  width: 320px;
+  min-height: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #2f3640;
   transition: all 0.3s ease;
-  position: relative;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -20,195 +18,251 @@ body {
 
 /* 容器样式 */
 .container {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin: 10px;
+  gap: 16px;
+  height: 100%;
   position: relative;
-  z-index: 1;
+  padding-bottom: 80px; /* 为切换按钮留出空间 */
 }
 
-/* 计时器显示 */
-.timer {
-  font-size: 48px;
-  font-weight: bold;
-  font-family: monospace;
-  color: #2f3640;
-  text-align: center;
-  padding: 20px;
-  background: white;
+/* 顶部控制栏 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
-/* 控制按钮区域 */
-.controls {
+.left-controls {
   display: flex;
-  gap: 10px;
-  justify-content: center;
-  width: 100%;
-}
-
-/* 按钮样式 */
-.button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: #4834d4;
-  color: white;
-}
-
-/* 开始按钮 */
-#startBtn {
-  background-color: #6c5ce7;
-}
-
-#startBtn:hover {
-  background-color: #5f4dd1;
-}
-
-/* 停止按钮 */
-#stopBtn {
-  background-color: #e84118;
-}
-
-#stopBtn:hover {
-  background-color: #d63110;
-}
-
-/* 模式切换按钮 */
-#modeToggle {
-  background-color: #00a8ff;
-}
-
-#modeToggle:hover {
-  background-color: #0097e6;
-}
-
-/* 禁用状态 */
-.button:disabled {
-  background-color: #b2bec3;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* 动画效果 */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* 计时器运行时添加动画 */
-.timer.running {
-  animation: pulse 2s infinite;
-}
-
-/* 响应式调整 */
-@media (max-width: 320px) {
-  .container {
-    padding: 15px;
-  }
-  
-  .timer {
-    font-size: 40px;
-    padding: 15px;
-  }
-  
-  .button {
-    padding: 8px 16px;
-    font-size: 12px;
-  }
-} 
-
-/* 调试面板 */
-.debug-panel {
-  margin-top: 20px;
-  padding: 10px;
-  background: #f1f2f6;
-  border-radius: 6px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.debug-button {
-  background-color: #2d3436 !important;
-}
-
-.debug-input {
-  width: 60px;
-  padding: 5px;
-  border: 1px solid #b2bec3;
-  border-radius: 4px;
-  text-align: center;
-} 
-
-.background-selector {
-  width: 100%;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.background-selector label {
-  margin-right: 4px;
-  font-size: 12px;
-}
-
-.background-selector input[type="color"] {
-  width: 50px;
-  height: 25px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.background-selector select {
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-  font-size: 12px;
-}
-
-.file-hint {
-  color: #666;
-  font-size: 11px;
-  display: block;
-  margin-top: 4px;
-}
-
-.image-selector {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
 .image-selector select {
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
   border: 1px solid #ddd;
-  font-size: 12px;
-  width: 120px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.image-selector select:hover {
+  border-color: #6c5ce7;
+}
+
+/* 计时器容器 */
+.timer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 40px 0;
+}
+
+/* 计时器显示 */
+.timer {
+  font-size: 72px;
+  font-weight: bold;
+  font-family: monospace;
+  color: #2d3436;
+  text-align: center;
+  padding: 32px 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* 调试面板 */
+.debug-panel {
+  position: relative;
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top center;
+  z-index: 100;
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  backdrop-filter: blur(2px);
+}
+
+/* 折叠状态 */
+.debug-panel.collapsed {
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* 调试面板切换按钮 */
+.toggle-debug-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 101;
+  font-size: 24px;
+}
+
+.toggle-debug-btn:hover {
+  transform: scale(1.1);
+}
+
+.toggle-debug-btn .toggle-icon {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid;
+  border-right: 2px solid;
+  transform: rotate(-45deg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
+}
+
+.toggle-debug-btn:hover .toggle-icon {
+  opacity: 1;
+}
+
+/* 旋转图标当面板展开时 */
+.debug-panel:not(.collapsed) + .toggle-debug-btn .toggle-icon {
+  transform: rotate(135deg);
+}
+
+/* 调整其他调试面板样式 */
+.time-setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  padding: 0 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.time-setting label {
+  font-size: 14px;
+  color: #37474f;
+}
+
+.debug-input {
+  width: 80px;
+  padding: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2d3436;
+  margin: 0 8px;
+}
+
+.debug-buttons {
+  display: flex;
+  gap: 12px;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.debug-button {
+  flex: 1;
+  background-color: #4a90e2;
+  font-size: 13px;
+  white-space: nowrap;
+  min-width: 100px;
+  text-align: center;
+  padding: 8px 12px;
+  margin: 0 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.debug-button:hover {
+  background-color: #357abd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 按钮样式 */
+.button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: white;
+  text-align: center;
+  min-width: 100px;
+  width: 100px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.button.primary {
+  background-color: #4a90e2;
+}
+
+.button.primary:hover {
+  background-color: #357abd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.button.danger {
+  background-color: #e57373;
+}
+
+.button.danger:hover {
+  background-color: #ef5350;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.button.info {
+  background-color: #00a8ff;
+}
+
+.button.info:hover {
+  background-color: #0097e6;
+}
+
+/* 动画效果 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.timer.running {
+  animation: pulse 2s infinite;
 }

@@ -9,14 +9,19 @@ function requestPermission() {
 }
 
 function testNotification() {
+  // 随机测试工作或休息通知
+  const testType = Math.random() > 0.5 ? 'work' : 'break';
+  console.log('发送测试通知:', testType);
   chrome.runtime.sendMessage({
-    type: 'SHOW_NOTIFICATION',
-    message: '这是一条测试通知'
+    type: 'TIMER_COMPLETE',
+    timerType: testType
   }, (response) => {
     if (chrome.runtime.lastError) {
       updateStatus('❌ 通知发送失败: ' + chrome.runtime.lastError.message);
+      console.error('测试通知发送失败:', chrome.runtime.lastError);
     } else {
       updateStatus('✅ 通知发送成功');
+      console.log('测试通知发送成功:', response);
     }
   });
 }

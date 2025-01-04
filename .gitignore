@@ -3,5 +3,5 @@ node_modules/
 *.log
 .idea/
 .vscode/
-+ !images/*.jpg
-+ !images/*.png
++ !images/
++ !images/*

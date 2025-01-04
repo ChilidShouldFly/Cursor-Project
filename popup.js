@@ -1,50 +1,36 @@
 class PomodoroTimer {
   constructor() {
     // 默认时间设置（25分钟）
-    this.DEFAULT_WORK_TIME = 25 * 60;  // 25分钟
-    this.DEFAULT_BREAK_TIME = 5 * 60;  // 5分钟
+    this.DEFAULT_TIME = 25 * 60;  // 25分钟
     this.timeLeft = 0;
     this.timerId = null;
     this.isRunning = false;
-    this.currentMode = 'work';
-    
-    // 检查通知权限
-    this.checkNotificationPermission();
     
     // DOM 元素
     this.timerDisplay = document.getElementById('timer');
-    this.startButton = document.getElementById('startBtn');
-    this.stopButton = document.getElementById('stopBtn');
-    this.modeToggle = document.getElementById('modeToggle');
-    this.bgColorInput = document.getElementById('bgColor');
-    this.bgColor2Input = document.getElementById('bgColor2');
-    this.gradientTypeSelect = document.getElementById('gradientType');
+    this.toggleBtn = document.getElementById('toggleBtn');
     this.bgImageSelect = document.getElementById('bgImage');
     
     // 绑定事件处理器
-    this.startButton.addEventListener('click', () => this.startTimer());
-    this.stopButton.addEventListener('click', () => this.stopTimer());
-    this.modeToggle.addEventListener('click', () => this.toggleMode());
-    this.bgColorInput.addEventListener('change', () => this.updateBackground());
-    this.bgColor2Input.addEventListener('change', () => this.updateBackground());
-    this.gradientTypeSelect.addEventListener('change', () => this.updateBackground());
+    this.toggleBtn.addEventListener('click', () => this.toggleTimer());
     this.bgImageSelect.addEventListener('change', () => this.updateBackground());
     
     // 初始化
     this.initializeTimer();
+    this.loadBackgroundImages();
     this.loadBackgroundSettings();
     
     // 添加调试按钮
     this.addDebugControls();
+    
+    // 调试面板切换
+    this.debugPanel = document.getElementById('debugPanel');
+    this.toggleDebugBtn = document.getElementById('toggleDebugBtn');
+    this.toggleDebugBtn.addEventListener('click', () => this.toggleDebugPanel());
   }
   
   async initializeTimer() {
-    // 从storage获取默认设置
-    const result = await chrome.storage.local.get(['defaultWorkTime', 'defaultBreakTime']);
-    this.workDuration = this.DEFAULT_WORK_TIME;
-    this.breakDuration = this.DEFAULT_BREAK_TIME;
-    
-    // 设置初始时间
+    this.workDuration = this.DEFAULT_TIME;
     this.timeLeft = this.workDuration;
     this.updateDisplay();
   }
@@ -53,65 +39,175 @@ class PomodoroTimer {
   async loadBackgroundSettings() {
     try {
       const settings = await chrome.storage.local.get([
-        'backgroundColor',
-        'backgroundColor2',
-        'gradientType',
-        'backgroundImage'
+        'backgroundImage',
+        'debugPanelCollapsed'
       ]);
       
-      if (settings.backgroundColor) {
-        this.bgColorInput.value = settings.backgroundColor;
-      }
-      if (settings.backgroundColor2) {
-        this.bgColor2Input.value = settings.backgroundColor2;
-      }
-      if (settings.gradientType) {
-        this.gradientTypeSelect.value = settings.gradientType;
-      }
       if (settings.backgroundImage) {
         this.bgImageSelect.value = settings.backgroundImage;
       }
       
+      // 恢复调试面板状态
+      if (settings.debugPanelCollapsed) {
+        this.debugPanel.classList.add('collapsed');
+      }
+      
       this.updateBackground();
     } catch (error) {
-      console.error('加载背景设置失败:', error);
+      console.error('加载设置失败:', error);
     }
   }
   
   // 更新背景
   updateBackground() {
     try {
-      const color1 = this.bgColorInput.value;
-      const color2 = this.bgColor2Input.value;
-      const gradientType = this.gradientTypeSelect.value;
       const selectedImage = this.bgImageSelect.value;
       
-      let background = '';
-      if (selectedImage) {
-        const imageUrl = chrome.runtime.getURL(`images/${selectedImage}`);
-        background = `url('${imageUrl}')`;
-        document.body.style.backgroundSize = 'cover';
-      } else {
-        let gradient;
-        if (gradientType === 'linear') {
-          gradient = `linear-gradient(45deg, ${color1}, ${color2})`;
-        } else {
-          gradient = `radial-gradient(circle, ${color1}, ${color2})`;
-        }
-        background = gradient;
+      console.log('选中的背景图片:', selectedImage);
+      
+      if (!selectedImage) {
+        this.setGradientBackground();
+        return;
       }
       
-      document.body.style.background = background;
+      // 使用完整的扩展 URL
+      const imageUrl = chrome.runtime.getURL(`images/${selectedImage}`);
+      console.log('Loading image:', imageUrl);
+      
+      // 先创建一个 Image 对象来验证图片是否可以加载
+      const img = new Image();
+      
+      // 设置跨域属性
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        document.body.style.backgroundImage = `url('${imageUrl}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundRepeat = 'no-repeat';
+        // 分析背景图片颜色并调整文字颜色
+        this.adjustTimerColor(img);
+      };
+      
+      img.onerror = (error) => {
+        console.error('背景图片加载失败:', selectedImage);
+        this.setGradientBackground();
+      };
+      
+      img.src = imageUrl;
       
       // 保存设置
       chrome.storage.local.set({
-        backgroundColor: color1,
-        backgroundColor2: color2,
-        gradientType: gradientType,
         backgroundImage: selectedImage
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('保存背景设置失败:', chrome.runtime.lastError);
+        }
       });
     } catch (error) {
       console.error('更新背景失败:', error);
+      this.setGradientBackground();
+    }
+  }
+  
+  // 分析图片颜色并调整文字颜色
+  adjustTimerColor(img) {
+    try {
+      // 创建 canvas 来分析图片
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // 设置 canvas 大小
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // 绘制图片
+      ctx.drawImage(img, 0, 0);
+      
+      // 获取中心区域的像素数据
+      const centerX = Math.floor(canvas.width / 2);
+      const centerY = Math.floor(canvas.height / 2);
+      const radius = 50; // 分析区域半径
+      
+      const imageData = ctx.getImageData(
+        centerX - radius,
+        centerY - radius,
+        radius * 2,
+        radius * 2
+      ).data;
+      
+      // 计算平均颜色
+      let r = 0, g = 0, b = 0;
+      for (let i = 0; i < imageData.length; i += 4) {
+        r += imageData[i];
+        g += imageData[i + 1];
+        b += imageData[i + 2];
+      }
+      
+      const pixelCount = imageData.length / 4;
+      r = Math.floor(r / pixelCount);
+      g = Math.floor(g / pixelCount);
+      b = Math.floor(b / pixelCount);
+      
+      // 计算亮度
+      const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+      
+      // 获取切换按钮图标
+      const toggleIcon = document.querySelector('.toggle-debug-btn .toggle-icon');
+      
+      // 根据亮度选择文字和图标颜色
+      if (brightness > 128) {
+        // 深色背景上使用深色文字
+        this.timerDisplay.style.color = '#2d3436';  // 深色文字
+        this.timerDisplay.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+        // 调试面板文字颜色
+        const debugLabels = document.querySelectorAll('.time-setting label');
+        debugLabels.forEach(label => {
+          label.style.color = '#2d3436';
+        });
+        if (toggleIcon) {
+          toggleIcon.style.borderTopColor = 'rgba(0, 0, 0, 0.8)';
+          toggleIcon.style.borderRightColor = 'rgba(0, 0, 0, 0.8)';
+        }
+      } else {
+        // 浅色背景上使用白色文字
+        this.timerDisplay.style.color = '#ffffff';  // 白色文字
+        this.timerDisplay.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.3)';
+        // 调试面板文字颜色
+        const debugLabels = document.querySelectorAll('.time-setting label');
+        debugLabels.forEach(label => {
+          label.style.color = '#ffffff';
+        });
+        if (toggleIcon) {
+          toggleIcon.style.borderTopColor = 'rgba(255, 255, 255, 0.8)';
+          toggleIcon.style.borderRightColor = 'rgba(255, 255, 255, 0.8)';
+        }
+      }
+    } catch (error) {
+      console.error('调整文字颜色失败:', error);
+      // 使用默认颜色
+      this.timerDisplay.style.color = '#2d3436';
+      // 调试面板使用默认颜色
+      const debugLabels = document.querySelectorAll('.time-setting label');
+      debugLabels.forEach(label => {
+        label.style.color = '#2d3436';
+      });
+      const toggleIcon = document.querySelector('.toggle-debug-btn .toggle-icon');
+      if (toggleIcon) {
+        toggleIcon.style.borderTopColor = 'rgba(255, 255, 255, 0.8)';
+        toggleIcon.style.borderRightColor = 'rgba(255, 255, 255, 0.8)';
+      }
+    }
+  }
+  
+  toggleTimer() {
+    if (this.isRunning) {
+      this.stopTimer();
+      // 恢复到当前模式的初始时间
+      this.timeLeft = this.workDuration;
+      this.updateDisplay();
+    } else {
+      this.startTimer();
     }
   }
   
@@ -119,17 +215,14 @@ class PomodoroTimer {
     if (this.isRunning) return;
     
     this.isRunning = true;
-    this.startButton.disabled = true;
-    this.stopButton.disabled = false;
+    this.toggleBtn.textContent = '结束';
+    this.toggleBtn.classList.replace('primary', 'danger');
     
     this.timerId = setInterval(() => {
       this.timeLeft--;
       this.updateDisplay();
       
-      console.log('当前剩余时间:', this.timeLeft);
-      
       if (this.timeLeft <= 0) {
-        console.log('时间到，即将调用 handleTimerComplete');
         this.handleTimerComplete();
       }
     }, 1000);
@@ -140,43 +233,20 @@ class PomodoroTimer {
     
     clearInterval(this.timerId);
     this.isRunning = false;
-    this.startButton.disabled = false;
-    this.stopButton.disabled = true;
-  }
-  
-  toggleMode() {
-    this.stopTimer();
-    this.currentMode = this.currentMode === 'work' ? 'break' : 'work';
-    this.timeLeft = this.currentMode === 'work' 
-      ? this.workDuration 
-      : this.breakDuration;
-    
-    // 更新UI
-    this.modeToggle.textContent = this.currentMode === 'work' ? '切换到休息' : '切换到工作';
-    this.updateDisplay();
+    this.toggleBtn.textContent = '开始';
+    this.toggleBtn.classList.replace('danger', 'primary');
   }
   
   handleTimerComplete() {
     this.stopTimer();
     
-    console.log('计时结束，准备发送通知');
-    // 发送消息给背景脚本
     chrome.runtime.sendMessage({
       type: 'SHOW_NOTIFICATION',
-      message: this.currentMode === 'work' 
-        ? '专注时间结束啦！该休息一下了' 
-        : '休息结束啦！继续开始新的专注吧'
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('通知发送失败:', chrome.runtime.lastError);
-      } else {
-        console.log('通知发送成功');
-      }
+      message: '专注时间结束啦！'
     });
     
-    // 自动切换模式并重置为默认时间
-    this.toggleMode();
-    this.timeLeft = this.currentMode === 'work' ? this.DEFAULT_WORK_TIME : this.DEFAULT_BREAK_TIME;
+    // 重置为初始时间
+    this.timeLeft = this.workDuration;
     this.updateDisplay();
   }
   
@@ -192,51 +262,44 @@ class PomodoroTimer {
   
   // 添加调试控制面板
   addDebugControls() {
-    const debugPanel = document.createElement('div');
-    debugPanel.className = 'debug-panel';
-    
-    // 添加打开测试页面按钮
-    const openTestPageBtn = document.createElement('button');
-    openTestPageBtn.textContent = '打开通知测试页面';
-    openTestPageBtn.className = 'button debug-button';
-    openTestPageBtn.onclick = () => {
+    // 获取调试面板元素
+    const timeInput = document.getElementById('timeInput');
+    const testNotificationBtn = document.getElementById('testNotificationBtn');
+    const notificationSettingsBtn = document.getElementById('notificationSettingsBtn');
+
+    // 绑定时间输入事件
+    timeInput.onchange = (e) => {
+      const newTime = parseInt(e.target.value) * 60; // 转换为秒
+      this.workDuration = newTime;
+      if (!this.isRunning) {
+        this.timeLeft = this.workDuration;
+        this.updateDisplay();
+      }
+    };
+
+    // 绑定测试通知按钮事件
+    testNotificationBtn.onclick = () => {
+      // 随机测试工作或休息知
+      const testType = Math.random() > 0.5 ? 'work' : 'break';
+      console.log('发送测试通知:', testType);
+      chrome.runtime.sendMessage({
+        type: 'TIMER_COMPLETE',
+        timerType: testType
+      }, response => {
+        if (chrome.runtime.lastError) {
+          console.error('测试通知发送失败:', chrome.runtime.lastError);
+        } else {
+          console.log('测试通知发送成功:', response);
+        }
+      });
+    };
+
+    // 绑定通知设置按钮事件
+    notificationSettingsBtn.onclick = () => {
       chrome.tabs.create({
         url: chrome.runtime.getURL('test-notification.html')
       });
     };
-    
-    // 添加测试按钮
-    const testNotificationBtn = document.createElement('button');
-    testNotificationBtn.textContent = '测试通知';
-    testNotificationBtn.className = 'button debug-button';
-    testNotificationBtn.onclick = () => {
-      console.log('测试按钮被点击');
-      chrome.runtime.sendMessage({
-        type: 'SHOW_NOTIFICATION',
-        message: '这是一条测试通知'
-      });
-    };
-    
-    // 添加时间设置
-    const timeInput = document.createElement('input');
-    timeInput.type = 'number';
-    timeInput.min = '1';
-    timeInput.value = Math.floor(this.DEFAULT_WORK_TIME / 60);
-    timeInput.className = 'debug-input';
-    timeInput.onchange = (e) => {
-      const newTime = parseInt(e.target.value) * 60; // 转换为秒
-      this.workDuration = newTime;
-      this.breakDuration = Math.floor(newTime / 5); // 休息时间设为工作时间的1/5
-      if (!this.isRunning) {
-        this.timeLeft = this.currentMode === 'work' ? this.workDuration : this.breakDuration;
-        this.updateDisplay();
-      }
-    };
-    
-    debugPanel.appendChild(timeInput);
-    debugPanel.appendChild(testNotificationBtn);
-    debugPanel.appendChild(openTestPageBtn);
-    document.querySelector('.container').appendChild(debugPanel);
   }
   
   // 检查通知权限
@@ -261,6 +324,126 @@ class PomodoroTimer {
         );
       }
     });
+  }
+  
+  // 获取 images 目录下的图片文件
+  async getImageFiles() {
+    try {
+      // 直接检查可能的图片文件
+      const extensions = ['.jpg', '.jpeg', '.png', '.gif'];
+      const maxImages = 100; // 最大检查数量
+      
+      const imageFiles = [];
+      
+      // 遍历可能的图片文件
+      for (let i = 1; i <= maxImages; i++) {
+        for (const ext of extensions) {
+          const fileName = `好东西${i}${ext}`;
+          try {
+            const imageUrl = chrome.runtime.getURL(`images/${fileName}`);
+            const response = await fetch(imageUrl, { method: 'HEAD' });
+            if (response.ok) {
+              imageFiles.push(fileName);
+            }
+          } catch (error) {
+            // 忽略不存在的文件错误
+            continue;
+          }
+        }
+      }
+      
+      console.log('找到的图片文件:', imageFiles);
+      
+      // 按文件名排序
+      imageFiles.sort((a, b) => {
+        // 从文件名中提取数字
+        const numA = parseInt(a.match(/好东西(\d+)/)?.[1] || '0');
+        const numB = parseInt(b.match(/好东西(\d+)/)?.[1] || '0');
+        if (numA !== numB) return numA - numB;
+        // 如果数字相同或没有数字，按字母顺序排序
+        return a.localeCompare(b);
+      });
+      
+      return imageFiles;
+    } catch (error) {
+      console.error('获取图片文件列表失败:', error);
+      return [];
+    }
+  }
+  
+  // 加载背景图片列表
+  async loadBackgroundImages() {
+    try {
+      // 获取扩展根目录的 URL
+      const extensionUrl = chrome.runtime.getURL('images/');
+      console.log('扩展目录:', extensionUrl);
+
+      // 尝试加载 images 目录下的图片
+      const imageFiles = await this.getImageFiles();
+      console.log('找到的图片文件:', imageFiles);
+
+      if (imageFiles.length > 0) {
+        // 获取当前选中的值
+        const currentValue = this.bgImageSelect.value;
+        
+        // 显示选择器
+        this.bgImageSelect.style.display = 'block';
+        
+        // 更新选项列表，只示图片选项
+        this.bgImageSelect.innerHTML = imageFiles.map(fileName => 
+          `<option value="${fileName}">${fileName}</option>`
+        ).join('');
+        
+        // 如果有之前选中的值且仍然存在，则保持选中
+        if (currentValue && imageFiles.includes(currentValue)) {
+          this.bgImageSelect.value = currentValue;
+        } else {
+          // 否则选择第一张片
+          this.bgImageSelect.value = imageFiles[0];
+        }
+        
+        // 设置背景
+        this.updateBackground();
+      } else {
+        // 如果没有图片，隐藏选择器并设置渐变背景
+        this.bgImageSelect.style.display = 'none';
+        this.setGradientBackground();
+      }
+    } catch (error) {
+      console.error('加载背景图片列表失败:', error);
+      // 出错时设置渐变背景
+      this.bgImageSelect.style.display = 'none';
+      this.setGradientBackground();
+    }
+  }
+  
+  // 添加新方法
+  toggleDebugPanel() {
+    this.debugPanel.classList.toggle('collapsed');
+    // 保存状态到 storage
+    chrome.storage.local.set({
+      debugPanelCollapsed: this.debugPanel.classList.contains('collapsed')
+    });
+  }
+  
+  // 设置渐变背景
+  setGradientBackground() {
+    // 使用高级灰渐变背景
+    document.body.style.backgroundImage = 'linear-gradient(45deg, #E0E0E0, #F5F5F5)';
+    document.body.style.backgroundColor = '#E0E0E0';
+    // 重置文字颜色
+    this.timerDisplay.style.color = '#333333';
+    // 调试面板文字颜色
+    const debugLabels = document.querySelectorAll('.time-setting label');
+    debugLabels.forEach(label => {
+      label.style.color = '#333333';
+    });
+    // 重置图标颜色
+    const toggleIcon = document.querySelector('.toggle-debug-btn .toggle-icon');
+    if (toggleIcon) {
+      toggleIcon.style.borderTopColor = 'rgba(0, 0, 0, 0.8)';
+      toggleIcon.style.borderRightColor = 'rgba(0, 0, 0, 0.8)';
+    }
   }
 }
 

@@ -7,32 +7,37 @@
 </head>
 <body>
   <div class="container">
-    <div class="background-selector">
+    <!-- 顶部控制栏 -->
+    <div class="top-bar">
+      <button id="toggleBtn" class="button primary">开始</button>
       <div class="image-selector">
-        <label for="bgImage">背景图片:</label>
-        <select id="bgImage">
-          <option value="">无背景图片</option>
-          <option value="bg1.jpg">图片1</option>
-          <option value="bg2.jpg">图片2</option>
-          <option value="bg3.jpg">图片3</option>
+        <select id="bgImage" title="选择背景图片">
+          <option value="">默认背景</option>
         </select>
       </div>
-      <label for="bgColor">背景颜色:</label>
-      <input type="color" id="bgColor" value="#f5f6fa">
-      <label for="bgColor2">渐变颜色:</label>
-      <input type="color" id="bgColor2" value="#ffffff">
-      <select id="gradientType">
-        <option value="linear">线性渐变</option>
-        <option value="radial">径向渐变</option>
-      </select>
     </div>
-    <div id="timer" class="timer">25:00</div>
-    
-    <div class="controls">
-      <button id="startBtn" class="button">开始</button>
-      <button id="stopBtn" class="button" disabled>停止</button>
-      <button id="modeToggle" class="button">切换到休息</button>
+
+    <!-- 计时器显示区域 -->
+    <div class="timer-container">
+      <div id="timer" class="timer">25:00</div>
     </div>
+
+    <!-- 可折叠的调试面板 -->
+    <div class="debug-panel collapsed" id="debugPanel">
+      <div class="time-setting">
+        <label>设置时间(分钟):</label>
+        <input type="number" id="timeInput" class="debug-input" min="1" value="25">
+      </div>
+      <div class="debug-buttons">
+        <button id="testNotificationBtn" class="button debug-button">测试通知</button>
+        <button id="notificationSettingsBtn" class="button debug-button">通知设置</button>
+      </div>
+    </div>
+
+    <!-- 调试面板切换按钮 -->
+    <button id="toggleDebugBtn" class="toggle-debug-btn">
+      <span class="toggle-icon"></span>
+    </button>
   </div>
   <script src="popup.js"></script>
 </body>

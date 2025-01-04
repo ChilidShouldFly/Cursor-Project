@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "番茄钟",
+  "name": "好番茄钟",
   "version": "1.2.0",
-  "description": "一个简单的番茄工作法计时器",
+  "description": "一个好东西牌番茄钟",
   "permissions": [
     "notifications",
     "storage",
@@ -20,7 +20,14 @@
     "128": "icon.png"
   },
   "web_accessible_resources": [{
-    "resources": ["images/*", "icon.png"],
+    "resources": [
+      "images/*.jpg",
+      "images/*.jpeg",
+      "images/*.png",
+      "images/*.gif",
+      "icon.png",
+      "notification-messages.md"
+    ],
     "matches": ["<all_urls>"]
   }]
 } 
