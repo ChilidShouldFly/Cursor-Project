@@ -27,6 +27,12 @@ class PomodoroTimer {
     this.debugPanel = document.getElementById('debugPanel');
     this.toggleDebugBtn = document.getElementById('toggleDebugBtn');
     this.toggleDebugBtn.addEventListener('click', () => this.toggleDebugPanel());
+    
+    // 初始化时获取后台计时器状态
+    this.syncWithBackground();
+    
+    // 添加定期同步
+    setInterval(() => this.syncWithBackground(), 1000);
   }
   
   async initializeTimer() {
@@ -202,62 +208,16 @@ class PomodoroTimer {
   
   toggleTimer() {
     if (this.isRunning) {
-      this.stopTimer();
-      // 恢复到当前模式的初始时间
-      this.timeLeft = this.workDuration;
-      this.updateDisplay();
+      chrome.runtime.sendMessage({ type: 'STOP_TIMER' });
     } else {
-      this.startTimer();
+      chrome.runtime.sendMessage({ type: 'START_TIMER' });
     }
   }
   
-  startTimer() {
-    if (this.isRunning) return;
-    
-    this.isRunning = true;
-    this.toggleBtn.textContent = '结束';
-    this.toggleBtn.classList.replace('primary', 'danger');
-    
-    this.timerId = setInterval(() => {
-      this.timeLeft--;
-      this.updateDisplay();
-      
-      if (this.timeLeft <= 0) {
-        this.handleTimerComplete();
-      }
-    }, 1000);
-  }
-  
-  stopTimer() {
-    if (!this.isRunning) return;
-    
-    clearInterval(this.timerId);
-    this.isRunning = false;
-    this.toggleBtn.textContent = '开始';
-    this.toggleBtn.classList.replace('danger', 'primary');
-  }
-  
-  handleTimerComplete() {
-    this.stopTimer();
-    
-    chrome.runtime.sendMessage({
-      type: 'SHOW_NOTIFICATION',
-      message: '专注时间结束啦！'
-    });
-    
-    // 重置为初始时间
-    this.timeLeft = this.workDuration;
-    this.updateDisplay();
-  }
-  
-  updateDisplay() {
-    const minutes = Math.floor(this.timeLeft / 60);
-    const seconds = this.timeLeft % 60;
-    this.timerDisplay.textContent = 
-      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    // 更新标题
-    document.title = `${this.timerDisplay.textContent} - 番茄钟`;
+  updateButton() {
+    this.toggleBtn.textContent = this.isRunning ? '结束' : '开始';
+    this.toggleBtn.classList.toggle('danger', this.isRunning);
+    this.toggleBtn.classList.toggle('primary', !this.isRunning);
   }
   
   // 添加调试控制面板
@@ -444,6 +404,30 @@ class PomodoroTimer {
       toggleIcon.style.borderTopColor = 'rgba(0, 0, 0, 0.8)';
       toggleIcon.style.borderRightColor = 'rgba(0, 0, 0, 0.8)';
     }
+  }
+  
+  // 添加 updateDisplay 方法
+  updateDisplay() {
+    if (!this.timerDisplay) return;
+    
+    const minutes = Math.floor(this.timeLeft / 60);
+    const seconds = this.timeLeft % 60;
+    this.timerDisplay.textContent = 
+      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    // 更新标题
+    document.title = `${this.timerDisplay.textContent} - 番茄钟`;
+  }
+  
+  async syncWithBackground() {
+    chrome.runtime.sendMessage({ type: 'GET_TIMER_STATE' }, (state) => {
+      if (chrome.runtime.lastError) return;
+      
+      this.isRunning = state.isRunning;
+      this.timeLeft = state.timeLeft;
+      this.updateDisplay();  // 这里调用 updateDisplay
+      this.updateButton();
+    });
   }
 }
 

@@ -11,6 +11,98 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// 添加计时器状态管理
+let timerState = {
+  isRunning: false,
+  timeLeft: 25 * 60,
+  workDuration: 25 * 60,
+  breakDuration: 5 * 60,
+  mode: 'work',
+  lastTickTime: null
+};
+
+// 使用 chrome.alarms 替代 setInterval
+chrome.alarms.create('pomodoroTimer', {
+  periodInMinutes: 1/60  // 每秒触发一次
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'pomodoroTimer' && timerState.isRunning) {
+    const now = Date.now();
+    if (timerState.lastTickTime) {
+      const elapsedSeconds = Math.floor((now - timerState.lastTickTime) / 1000);
+      timerState.timeLeft = Math.max(0, timerState.timeLeft - elapsedSeconds);
+      
+      // 添加错误处理的广播
+      try {
+        chrome.runtime.sendMessage({
+          type: 'TIME_UPDATE',
+          timeLeft: timerState.timeLeft
+        }).catch(() => {
+          // 忽略连接错误
+          console.log('No active connections');
+        });
+      } catch (error) {
+        // 忽略连接错误
+        console.log('Failed to send message:', error);
+      }
+      
+      if (timerState.timeLeft <= 0) {
+        handleTimerComplete();
+      }
+    }
+    timerState.lastTickTime = now;
+    saveTimerState();
+  }
+});
+
+function startTimer() {
+  if (timerState.isRunning) return;
+  
+  timerState.isRunning = true;
+  timerState.lastTickTime = Date.now();
+  saveTimerState();
+}
+
+function stopTimer() {
+  if (!timerState.isRunning) return;
+  
+  timerState.isRunning = false;
+  timerState.lastTickTime = null;
+  saveTimerState();
+}
+
+function handleTimerComplete() {
+  stopTimer();
+  
+  // 显示通知
+  showNotification(timerState.mode);
+  
+  // 切换模式
+  timerState.mode = timerState.mode === 'work' ? 'break' : 'work';
+  timerState.timeLeft = timerState.mode === 'work' ? timerState.workDuration : timerState.breakDuration;
+  
+  // 自动开始下一个计时
+  startTimer();
+}
+
+// 保存计时器状态
+function saveTimerState() {
+  chrome.storage.local.set({ timerState });
+}
+
+// 恢复计时器状态
+function restoreTimerState() {
+  chrome.storage.local.get('timerState', (data) => {
+    if (data.timerState) {
+      timerState = data.timerState;
+      if (timerState.isRunning) {
+        startTimer();
+      }
+    }
+  });
+}
+
 // 监听来自 popup 的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('后台收到消息:', message);
@@ -29,6 +121,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ success: true });
     return true;
   }
+
+  switch (message.type) {
+    case 'START_TIMER':
+      startTimer();
+      sendResponse({ success: true });
+      break;
+      
+    case 'STOP_TIMER':
+      stopTimer();
+      sendResponse({ success: true });
+      break;
+      
+    case 'GET_TIMER_STATE':
+      sendResponse(timerState);
+      break;
+      
+    case 'SET_TIMER':
+      timerState.timeLeft = message.time;
+      timerState.workDuration = message.time;
+      saveTimerState();
+      sendResponse({ success: true });
+      break;
+      
+    // ... 其他现有的消息处理 ...
+  }
+  
+  return true;
 });
 
 // 监听通知点击
@@ -160,4 +279,7 @@ async function showNotification(timerType) {
   } catch (error) {
     console.error('创建通知时出错:', error);
   }
-} 
+}
+
+// 初始化时恢复状态
+restoreTimerState(); 
