@@ -208,9 +208,23 @@ class PomodoroTimer {
   
   toggleTimer() {
     if (this.isRunning) {
-      chrome.runtime.sendMessage({ type: 'STOP_TIMER' });
+      // 停止计时并重置
+      chrome.runtime.sendMessage({ 
+        type: 'STOP_TIMER',
+        reset: true
+      }, (response) => {
+        if (response && response.success) {
+          // 重置本地状态
+          this.isRunning = false;
+          this.timeLeft = this.workDuration;
+          this.updateDisplay();
+          this.updateButton();
+          this.updateTimeInputState();  // 更新输入框状态
+        }
+      });
     } else {
       chrome.runtime.sendMessage({ type: 'START_TIMER' });
+      this.updateTimeInputState();  // 更新输入框状态
     }
   }
   
@@ -231,10 +245,21 @@ class PomodoroTimer {
     timeInput.onchange = (e) => {
       const newTime = parseInt(e.target.value) * 60; // 转换为秒
       this.workDuration = newTime;
-      if (!this.isRunning) {
-        this.timeLeft = this.workDuration;
-        this.updateDisplay();
-      }
+      
+      // 同时更新后台的时间设置
+      chrome.runtime.sendMessage({
+        type: 'SET_TIMER',
+        time: newTime,
+        updateWorkDuration: true  // 添加标志表示需要更新工作时长
+      }, (response) => {
+        if (response && response.success) {
+          // 如果不在计时中，立即更新显示
+          if (!this.isRunning) {
+            this.timeLeft = newTime;
+            this.updateDisplay();
+          }
+        }
+      });
     };
 
     // 绑定测试通知按钮事件
@@ -420,14 +445,34 @@ class PomodoroTimer {
   }
   
   async syncWithBackground() {
-    chrome.runtime.sendMessage({ type: 'GET_TIMER_STATE' }, (state) => {
-      if (chrome.runtime.lastError) return;
-      
-      this.isRunning = state.isRunning;
-      this.timeLeft = state.timeLeft;
-      this.updateDisplay();  // 这里调用 updateDisplay
-      this.updateButton();
-    });
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_TIMER_STATE' }, (state) => {
+        if (!state || chrome.runtime.lastError) return;
+        
+        this.isRunning = state.isRunning;
+        // 只在计时器运行时同步时间
+        if (state.isRunning) {
+          this.timeLeft = state.timeLeft;
+          this.updateDisplay();
+        }
+        this.updateButton();
+        this.updateTimeInputState();  // 更新输入框状态
+      });
+    } catch (error) {
+      console.error('同步状态失败:', error);
+    }
+  }
+  
+  // 在 PomodoroTimer 类中添加新方法
+  updateTimeInputState() {
+    const timeInput = document.getElementById('timeInput');
+    if (timeInput) {
+      // 当计时器运行时禁用输入框
+      timeInput.disabled = this.isRunning;
+      // 添加视觉反馈
+      timeInput.style.opacity = this.isRunning ? '0.5' : '1';
+      timeInput.style.cursor = this.isRunning ? 'not-allowed' : 'auto';
+    }
   }
 }
 

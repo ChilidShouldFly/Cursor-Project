@@ -134,25 +134,27 @@ body {
   transform: scale(1.1);
 }
 
+/* 调试面板展开/收起图标 */
 .toggle-debug-btn .toggle-icon {
-  content: '';
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-top: 2px solid;
-  border-right: 2px solid;
-  transform: rotate(-45deg);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0.8;
+  transition: transform 0.3s ease;
 }
 
-.toggle-debug-btn:hover .toggle-icon {
-  opacity: 1;
-}
-
-/* 旋转图标当面板展开时 */
+/* 收起状态的图标（指向下方） */
 .debug-panel:not(.collapsed) + .toggle-debug-btn .toggle-icon {
-  transform: rotate(135deg);
+  border-top-color: rgba(0, 0, 0, 0.8);
+  border-bottom: none;
+  transform: translateY(3px);
+}
+
+/* 展开状态的图标（指向上方） */
+.debug-panel.collapsed + .toggle-debug-btn .toggle-icon {
+  border-bottom-color: rgba(0, 0, 0, 0.8);
+  border-top: none;
+  transform: translateY(-3px);
 }
 
 /* 调整其他调试面板样式 */
